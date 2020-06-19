@@ -20,7 +20,7 @@ def load_csv(filepath, n):
     raw_data['raw'] = raw
 
     val = df.select_dtypes(include='number')
-    matrix = list(val.iloc[:,2:-1].values)
+    matrix = list(df.iloc[:,5:-1].values)
 
     for i in range(len(matrix)):
         matrix[i] = tuple(matrix[i])

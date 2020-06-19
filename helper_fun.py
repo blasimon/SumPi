@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 def shaking(ximli,pmj,yilij,k):
     J = len(pmj[0])
@@ -7,8 +8,8 @@ def shaking(ximli,pmj,yilij,k):
     for i in range(I):
         ci[i] = len(ximli[i][0])
     
-    new_ximli = ximli
-    #print("new_ximli",type(new_ximli),len(new_ximli),len(new_ximli[0]),len(new_ximli[0][0]))
+    new_ximli = copy.deepcopy(ximli)
+    ###print("new_ximli",type(new_ximli),len(new_ximli),len(new_ximli[0]),len(new_ximli[0][0]))
 
     for kk in range(k):
         i = np.random.randint(I)
@@ -16,7 +17,7 @@ def shaking(ximli,pmj,yilij,k):
 
         y = np.asarray(yilij[int(li)])
         miscoverings_li = J - (pmj[0]@y.T+(1-pmj[0])@(1-y).T)
-        #print("covering", miscoverings_li)
+        ###print("covering", miscoverings_li)
         for m_ in range(len(ximli[i])): # find li's covering summary pile
             if ximli[i][m_][li]==1:
                 m = m_
@@ -36,13 +37,13 @@ def roulette(miscoverings,current_pile):
         return m
 
     summary_piles = list(range(K))
-    print("cp",current_pile)
-    miscoverings=list(miscoverings[:current_pile-1])+list(miscoverings[current_pile:])
-    summary_piles=summary_piles[:current_pile-1]+summary_piles[current_pile:]
+    ###print("cp",current_pile)
+    miscoverings=list(miscoverings[:current_pile])+list(miscoverings[current_pile+1:])
+    summary_piles=summary_piles[:current_pile]+summary_piles[current_pile+1:]
     total=sum(miscoverings)
     int_probs=total-miscoverings
     ac=np.zeros(K-1)
-    print(len(miscoverings))
+    ##print(len(miscoverings))
     if np.sum(int_probs)!=0:
         probs=int_probs/np.sum(int_probs)
         ac[0] = probs[0]
@@ -52,11 +53,12 @@ def roulette(miscoverings,current_pile):
         probs = 1
         ac[0] = probs
 
-    print(summary_piles,K-1)
+    ###print(summary_piles,K-1)
     random_val=np.random.rand()
     for i in range(K-1):
         if ac[i]>=random_val:
             m=summary_piles[i]
+            break
     return m
 
 def local_search(ximli,pmj,yilij,weights):
@@ -66,19 +68,19 @@ def local_search(ximli,pmj,yilij,weights):
     for i in range(I):
         ci[i] = len(yilij)
 
-    #print(ci)
-    localBestPmj=pmj
+    ###print(ci)
+    localBestPmj=copy.deepcopy(pmj)
     localBestZ=10**15
 
     no_change = False
     while no_change == False:
         # Computing best summary piles given ximli
         count_mj=np.zeros(shape=(K,J))
-        covering_count_m=np.zeros(shape=(K,1))
+        covering_count_m=np.zeros(K)
 
         for m in range(K):
             for i in range(I):
-                #print(i,ci)
+                ###print(i,ci)
                 for li in range(int(ci[i])):
                     if ximli[i][m][li] == 1:
                         covering_count_m[m] = covering_count_m[m]+weights[li]
@@ -97,16 +99,17 @@ def local_search(ximli,pmj,yilij,weights):
      # Rearranging piles according to cost (minimizing miscoverings)
         Z = 0
         y = np.asarray(yilij)
+        #print(y.shape)
         mismatches = J - (pmj[0]@y.T+(1-pmj[0])@(1-y).T)
-        print(mismatches.shape,ci[0])
+        ###print(mismatches.shape,ci[0])
         new_ximli =[np.zeros(shape = (K,int(ci[0])))]
         for li in range(int(ci[0])):
             val = min(mismatches[:,li])
             cid = int(np.argmin(mismatches[:,li]))
             Z = Z+val*weights[li]
             new_ximli[0][int(cid)][int(li)] = 1
-        print(new_ximli[0])
-        print(ximli[0])
+        ###print(new_ximli[0])
+        ###print(ximli[0])
         if new_ximli[0].all() == ximli[0].all():
             no_change = True
         else:
@@ -114,7 +117,7 @@ def local_search(ximli,pmj,yilij,weights):
         
         if Z<localBestZ:
             localBestZ=Z
-            localBestPmj=pmj
+            localBestPmj=copy.deepcopy(pmj)
 
     # If there's an empty summary pile then let it be equal to the pile of maximum ocurrence that it covers. Then, rearrange piles one more time
     for m in range(K):
@@ -135,13 +138,11 @@ def local_search(ximli,pmj,yilij,weights):
     localBestXimli,localBestZ=get_cost(localBestPmj,yilij,weights)
     return localBestZ,localBestPmj,localBestXimli
 
-
-
 def get_cost(pmj,yilij,weights):
     Z=0
 
     K,J=pmj[0].shape
-    print(K,J)
+    ###print(K,J)
     I=1
     ximli=[[]]
 
@@ -150,11 +151,12 @@ def get_cost(pmj,yilij,weights):
         mismatches = J - (pmj[0]@y.T+(1-pmj[0])@(1-y).T)
         ci = len(yilij)
         ximli[0] = np.zeros(shape=(K,ci))
-        print(ci,len(weights))
+        ###print(ci,len(weights))
         for li in range(ci):
             val = min(mismatches[:,li])
             cid = int(np.argmin(mismatches[:,li]))
             Z = Z+val*weights[li]
+            ##print(val,cid)
             ximli[0][int(cid)][int(li)] = 1
 
     return ximli,Z
@@ -162,8 +164,8 @@ def get_cost(pmj,yilij,weights):
 def check_piles(pmj,yilij,ximli,weights,yilij_raw):
     text = ""
     raw = []
-    print("1",len(yilij_raw))
-    print('2',len(yilij_raw[0]))
+    ###print("1",len(yilij_raw))
+    ###print('2',len(yilij_raw[0]))
     for i in range(len(yilij_raw)):
         y = list(yilij_raw[i])
         for li in range(len(y)):
@@ -172,19 +174,18 @@ def check_piles(pmj,yilij,ximli,weights,yilij_raw):
     K = len(pmj[0])
     for m in range(K):
         ci = len(yilij)
-        equal_li=0
+        equal_li=-1
         cover_sum=0
         for li in range(ci):
-            #print("shape",len(ximli),len(ximli[0]),len(ximli[0][0]),m,li)
             if ximli[0][m][li] == 1:
                 cover_sum=cover_sum+weights[li]
-                if pmj[0][m].all() == np.asarray(yilij[li]).all():
+                if np.sum(pmj[0][m]- np.asarray(yilij[li])) == 0:
                     equal_li = li
-        if equal_li != 0:
+        if equal_li != -1:
             for li in range(len(raw)):
                 if yilij[li] == raw[li]:
                     break
-            text = '%sSummary pile %d equals pile %d (appears %d times), and covers other %d piles (%d total).\n'%(text,m,li,weights[equal_li],cover_sum-weights[equal_li],cover_sum)
+            text = '%sSummary pile %d equals pile %d (appears %d times), and covers other %d piles (%d total).\n'%(text,m,equal_li,weights[equal_li],cover_sum-weights[equal_li],cover_sum)
         else:
             text = '%sSummary pile %d doesnt equal any pile, but covers %d piles.\n'%(text,m,cover_sum)
     return text
